@@ -10,7 +10,7 @@ from app.schemas.booking import BookingCreate, BookingResponse
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
-SERVICE_FEE_RATE = 0.12  # 12% platform fee
+SERVICE_FEE_RATE = 0.12  # 12% service fee
 
 
 def _booking_to_response(booking: Booking) -> BookingResponse:
@@ -33,25 +33,28 @@ def _booking_to_response(booking: Booking) -> BookingResponse:
 @router.post("/", response_model=BookingResponse, status_code=status.HTTP_201_CREATED)
 def create_booking(
     data: BookingCreate,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     # Validate property exists
     prop = db.query(Property).filter(Property.id == data.property_id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Property not found")
 
-    # Can't book own property
+    # Can't book your own property
     if prop.host_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Cannot book your own property")
-
-    # Validate guests
-    if data.num_guests > prop.max_guests:
-        raise HTTPException(status_code=400, detail=f"Max guests is {prop.max_guests}")
+        raise HTTPException(status_code=400, detail="You cannot book your own property")
 
     # Validate dates
     if data.check_out <= data.check_in:
         raise HTTPException(status_code=400, detail="Check-out must be after check-in")
+
+    # Validate guest count
+    if data.num_guests > prop.max_guests:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Property supports max {prop.max_guests} guests",
+        )
 
     # Check for overlapping bookings
     overlapping = db.query(Booking).filter(
@@ -62,7 +65,10 @@ def create_booking(
     ).first()
 
     if overlapping:
-        raise HTTPException(status_code=409, detail="Property is already booked for these dates")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Property is already booked for these dates",
+        )
 
     # Calculate pricing
     num_nights = (data.check_out - data.check_in).days
@@ -83,19 +89,26 @@ def create_booking(
     db.add(booking)
     db.commit()
     db.refresh(booking)
+
     return _booking_to_response(booking)
 
 
-@router.get("/my", response_model=list[BookingResponse])
-def get_my_bookings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get current user's bookings (as a guest)."""
+@router.get("/", response_model=list[BookingResponse])
+def list_bookings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List bookings for the current user (as guest)."""
     bookings = db.query(Booking).filter(Booking.guest_id == current_user.id).all()
     return [_booking_to_response(b) for b in bookings]
 
 
 @router.get("/hosting", response_model=list[BookingResponse])
-def get_hosting_bookings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get bookings for properties the current user hosts."""
+def list_host_bookings(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List bookings for properties owned by the current user (as host)."""
     bookings = (
         db.query(Booking)
         .join(Property)
@@ -108,8 +121,8 @@ def get_hosting_bookings(current_user: User = Depends(get_current_user), db: Ses
 @router.post("/{booking_id}/cancel", response_model=BookingResponse)
 def cancel_booking(
     booking_id: int,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if not booking:
@@ -119,12 +132,13 @@ def cancel_booking(
     is_guest = booking.guest_id == current_user.id
     is_host = booking.property.host_id == current_user.id
     if not is_guest and not is_host:
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=403, detail="Not authorized to cancel this booking")
 
     if booking.status == BookingStatus.CANCELLED:
-        raise HTTPException(status_code=400, detail="Already cancelled")
+        raise HTTPException(status_code=400, detail="Booking is already cancelled")
 
     booking.status = BookingStatus.CANCELLED
     db.commit()
     db.refresh(booking)
+
     return _booking_to_response(booking)

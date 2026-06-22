@@ -14,26 +14,24 @@ router = APIRouter(prefix="/reviews", tags=["Reviews"])
 @router.post("/", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)
 def create_review(
     data: ReviewCreate,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    # Validate booking
+    # Validate booking exists and belongs to user
     booking = db.query(Booking).filter(Booking.id == data.booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
-    # Only the guest can review
     if booking.guest_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the guest can leave a review")
+        raise HTTPException(status_code=403, detail="You can only review your own bookings")
 
-    # Booking must be completed
     if booking.status != BookingStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Can only review completed bookings")
 
     # Check if already reviewed
     existing = db.query(Review).filter(Review.booking_id == data.booking_id).first()
     if existing:
-        raise HTTPException(status_code=409, detail="Already reviewed this booking")
+        raise HTTPException(status_code=409, detail="You already reviewed this booking")
 
     # Validate rating
     if not 1 <= data.rating <= 5:
