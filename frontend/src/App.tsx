@@ -6,6 +6,7 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import PropertyDetailPage from "./pages/PropertyDetailPage";
+import TripsPage from "./pages/TripsPage";
 
 function App() {
   return (
@@ -21,7 +22,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/property/:id" element={<PropertyDetailPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/trips" element={<div className="p-10 text-center text-gray-400">My Trips coming soon</div>} />
+          <Route path="/trips" element={<TripsPage />} />
           <Route path="/favorites" element={<div className="p-10 text-center text-gray-400">Wishlist coming soon</div>} />
           <Route path="/host/properties" element={<div className="p-10 text-center text-gray-400">Host Dashboard coming soon</div>} />
         </Routes>
