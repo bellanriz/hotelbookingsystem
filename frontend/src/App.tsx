@@ -8,6 +8,7 @@ import RegisterPage from "./pages/RegisterPage";
 import PropertyDetailPage from "./pages/PropertyDetailPage";
 import TripsPage from "./pages/TripsPage";
 import FavoritesPage from "./pages/FavoritesPage";
+import HostDashboardPage from "./pages/HostDashboardPage";
 
 function App() {
   return (
@@ -25,7 +26,8 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/trips" element={<TripsPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
-          <Route path="/host/properties" element={<div className="p-10 text-center text-gray-400">Host Dashboard coming soon</div>} />
+          <Route path="/host/properties" element={<HostDashboardPage />} />
+          <Route path="/host/bookings" element={<div className="p-10 text-center text-gray-400">Host Bookings coming soon</div>} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
