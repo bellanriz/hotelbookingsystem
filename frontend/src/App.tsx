@@ -9,6 +9,7 @@ import PropertyDetailPage from "./pages/PropertyDetailPage";
 import TripsPage from "./pages/TripsPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import HostDashboardPage from "./pages/HostDashboardPage";
+import HostBookingsPage from "./pages/HostBookingsPage";
 
 function App() {
   return (
@@ -27,7 +28,7 @@ function App() {
           <Route path="/trips" element={<TripsPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />
           <Route path="/host/properties" element={<HostDashboardPage />} />
-          <Route path="/host/bookings" element={<div className="p-10 text-center text-gray-400">Host Bookings coming soon</div>} />
+          <Route path="/host/bookings" element={<HostBookingsPage />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>
